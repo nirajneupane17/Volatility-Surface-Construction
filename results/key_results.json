@@ -1,1 +1,1 @@
-{"atm_30d": 20.35, "atm_7d": 21.71, "skew_30d": 3.64, "iv_ratio": 130.506, "n_strikes": 19, "n_expiries": 11, "spot": 450.0, "r": 5.3, "q": 1.3}
+{"atm_iv_30d": 20.0425, "atm_iv_360d": 19.878, "skew_25d_30d": -0.7911, "vrp_mean": 2.9547, "vrp_pct_positive": 94.9, "iv_range_pct": "15.5%-26.2%", "heston_rho": -0.7, "heston_kappa": 2.5, "heston_xi": 0.5}

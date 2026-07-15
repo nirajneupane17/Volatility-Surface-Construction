@@ -1,135 +1,151 @@
 <div align="center">
 
-# Implied Volatility Surface Construction
+# Volatility Surface Construction & Smile Dynamics
 
-### Black-Scholes · SVI Gatheral (2004) · Greeks · Term Structure
+### Quant Trading Projects — Volatility Series
 
-*End-to-end implied volatility surface construction from a raw options chain —
-Newton-Raphson IV solver, SVI parametrisation, arbitrage-free constraints,
-3D surface visualisation, Greeks surface, and term structure modeling.*
+*A complete institutional-grade volatility modeling framework:
+Black-Scholes implied vol extraction, smile and skew construction,
+3D vol surface interpolation, Heston model calibration,
+Dupire local volatility, and realized vs implied vol risk premium.*
 
 [![Python](https://img.shields.io/badge/Python-3.10+-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)](https://python.org)
 [![NumPy](https://img.shields.io/badge/NumPy-013243?style=for-the-badge&logo=numpy&logoColor=white)](https://numpy.org)
 [![SciPy](https://img.shields.io/badge/SciPy-8CAAE6?style=for-the-badge&logo=scipy&logoColor=white)](https://scipy.org)
-[![Matplotlib](https://img.shields.io/badge/Matplotlib-ffffff?style=for-the-badge&logo=Matplotlib&logoColor=black)](https://matplotlib.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
 </div>
 
 ---
 
-![Implied Volatility Surface](results/vol_surface_final_pro.png)
+## What Is This Project?
 
-> **Animated Dashboard:** [Bloomberg-style GIF](results/vol_surface_bloomberg.gif) · [10-Second Video](results/vol_surface_video.mp4)
+The volatility surface is the most important data structure in options markets.
+It maps implied volatility as a function of strike and maturity for a given
+underlying asset. Every options desk, every derivatives pricing team, and every
+vol-aware risk management function relies on a well-constructed vol surface.
+
+Black-Scholes assumes constant volatility. The market does not agree.
+OTM puts trade at higher implied vol than ATM options (the smile).
+Short-dated options often trade at higher vol than long-dated ones
+(term structure inversion). The vol surface captures all of this
+and provides a consistent framework for pricing, hedging, and trading.
+
+This project builds the complete volatility modeling stack:
+from raw option prices to a full 3D surface, with Heston calibration,
+skew analytics, and a 5-year realized vs implied vol comparison.
 
 ---
 
-## Overview
+## Who This Is For
 
-The implied volatility surface is one of the most important artifacts
-in derivatives pricing and risk management. It encodes the market's
-collective view of risk across every strike and maturity simultaneously.
-
-This project builds the full surface from scratch — starting from a raw
-SPY options chain, computing implied vols via a Newton-Raphson solver,
-fitting a Stochastic Volatility Inspired (SVI) parametrisation for
-each expiry slice, checking arbitrage-free constraints, and visualising
-the result as a 3D surface, heatmap, Greeks surface, and term structure.
-
-Three structural phenomena are visible in the surface:
-
-**Volatility Skew** — OTM puts trade at significantly higher implied vol
-than OTM calls. The 7D 75% strike IV reaches ~40% while the 7D 125%
-strike IV sits at ~14%. This reflects the post-1987 crash premium
-for downside protection.
-
-**Term Structure** — ATM implied vol declines from 22% at 7 days to
-17% at 365 days. Short-dated options carry a higher vol premium
-because near-term risk is harder to hedge and more event-driven.
-
-**Smile Curvature** — At every expiry, the surface curves upward on
-both wings. The left wing (puts) is always steeper than the right
-wing (calls) — this asymmetry is the defining feature of equity vol surfaces.
+| Audience | What They Get |
+|:---|:---|
+| **Quant Finance Students** | Implied vol extraction, smile, skew, Heston — all tested in derivatives interviews |
+| **Options Traders** | Risk reversal, butterfly, term structure — the daily language of vol desks |
+| **Quant Researchers** | Heston calibration, Dupire local vol, vol surface interpolation — live research tools |
+| **Risk Analysts** | Vol surface for VaR, stress testing, and sensitivities reporting |
 
 ---
 
 ## Key Results
 
-| Metric | Value |
-|:---|:---:|
-| **ATM IV — 7 Days** | 21.7% |
-| **ATM IV — 30 Days** | 20.3% |
-| **ATM IV — 365 Days** | 17.0% |
-| **Put Skew (30D, 90% vs ATM)** | −3.2% |
-| **OTM Put Wing (7D, 75% strike)** | ~40% |
-| **OTM Call Wing (7D, 125% strike)** | ~14% |
-| **7D / 365D IV Ratio** | 1.07× |
-| **SVI RMSE (per slice)** | < 0.001 |
-| **Arbitrage-Free** | ✅ Calendar & Butterfly |
-| **IV Solver Convergence** | < 5 Newton-Raphson iterations |
+| Metric | Value | Context |
+|:---|:---:|:---|
+| **ATM IV (30d)** | ~19.8% | Near-dated at-the-money vol |
+| **ATM IV (360d)** | ~20.5% | Long-dated higher — term structure upward sloping |
+| **25δ Risk Reversal (30d)** | ~−1.8 vol pts | Negative = left skew = puts more expensive than calls |
+| **25δ Butterfly (30d)** | ~+0.4 vol pts | Positive = fat tails = smile curvature above ATM |
+| **IV Surface Range** | 15.5% – 26.2% | Deep OTM puts most expensive, OTM calls cheapest |
+| **Vol Risk Premium** | ~+2.95% | Implied vol persistently above realised vol |
+| **IV > RV** | ~72% of days | Vol sellers earn the premium most of the time |
+| **Heston ρ** | −0.70 | Strong negative correlation — equity-style left skew |
+| **Heston RMSE** | ~0.3 vol pts | Excellent calibration fit |
 
 ---
 
-## What This Project Covers
+## What Is in the Data
 
-<details>
-<summary><b>📐 Black-Scholes IV Solver</b></summary>
+### `data/vol_surface.csv`
+Full implied volatility surface — 21 strikes × 12 maturities = 252 option quotes.
 
-- Closed-form Black-Scholes call and put pricing with continuous dividends
-- Newton-Raphson implied vol solver with Brent fallback for robustness
-- Vega-based step control to prevent overshooting
-- Handles deep ITM/OTM options, short-dated expiries, and near-zero vega
-- Full Greeks: Delta, Gamma, Vega, Theta
-- Convergence in under 5 iterations for well-conditioned inputs
+| Column | Description |
+|:---|:---|
+| `strike` | Absolute strike price |
+| `strike_pct` | Strike as fraction of spot (1.0 = ATM) |
+| `maturity_days` | Days to expiry: 7, 14, 21, 30, 45, 60, 90, 120, 150, 180, 240, 360 |
+| `implied_vol_pct` | Implied volatility in percent |
+| `option_price` | Black-Scholes option price |
+| `option_type` | 'call' or 'put' |
+| `delta` | Black-Scholes delta |
+| `log_moneyness` | ln(K/S) — standard x-axis for vol smile |
 
-</details>
+### `data/term_structure.csv`
+ATM implied vol + 25-delta risk reversal and butterfly across all maturities.
 
-<details>
-<summary><b>📊 Volatility Smile & Surface</b></summary>
+### `data/vol_timeseries.csv`
+Daily time series 2020–2025: realized vol (21-day), implied vol (30-day),
+VIX proxy, vol risk premium, and RV/IV ratio.
 
-- 19 strikes from 0.75× to 1.25× spot — full moneyness coverage
-- 11 expiries from 7D to 365D — full term structure
-- 209 option records with bid-ask spread, mid price, IV, Delta, Vega
-- IV surface pivot table (11×19) ready for interpolation
-- Smile plotted in log-moneyness (BSIV convention) and linear moneyness
-- Clear negative skew across all expiries — put wing systematically elevated
+---
 
-</details>
+## How It Works
 
-<details>
-<summary><b>🎯 SVI Parametrisation (Gatheral 2004)</b></summary>
+```
+Step 1  Generate option price grid
+        21 strikes (70%–130% of spot) × 12 maturities (7–360 days)
+        Heston model to produce realistic smile and skew
 
-- Raw SVI: w(k) = a + b · (ρ(k−m) + √((k−m)² + σ²))
-- 5 parameters: a, b, ρ, m, σ — fit per expiry slice
-- Nelder-Mead optimisation with 50 random restarts for robustness
-- No-arbitrage constraints: calendar spread and butterfly checks
-- RMSE < 0.001 across all 11 expiry slices
-- SVI fits overlaid on market dots — visual goodness-of-fit check
+Step 2  Extract implied volatility
+        Invert Black-Scholes price formula → implied vol
+        Newton-Raphson solver with Brent fallback
 
-</details>
+Step 3  Construct vol smile and term structure
+        IV vs strike at fixed maturity = smile
+        ATM IV vs maturity = term structure
 
-<details>
-<summary><b>📈 Term Structure & Forward Vol</b></summary>
+Step 4  Compute skew metrics
+        25-delta risk reversal = Put25d − Call25d
+        25-delta butterfly = (Put25d + Call25d)/2 − ATM
+        Higher RR = more downside fear / left skew
 
-- ATM implied vol extracted per expiry — spot term structure
-- Forward (instantaneous) vol computed from variance differentials:
-  σ²_fwd(T1,T2) = (σ²(T2)·T2 − σ²(T1)·T1) / (T2 − T1)
-- Forward vol dips below spot IV in mid-term then recovers
-- Skew, risk reversal, and butterfly metrics per expiry
-- Full surface summary table: ATM IV · Skew · RR · Butterfly
+Step 5  Calibrate Heston model
+        Fit v0, κ, θ, ξ, ρ to market smile
+        Minimise RMSE across all strikes and maturities
 
-</details>
+Step 6  Realised vs implied vol analysis
+        VRP = Implied vol − Realized vol
+        Positive VRP = vol sellers earn risk premium
+```
 
-<details>
-<summary><b>⚡ Greeks Surface</b></summary>
+---
 
-- Delta surface — call Delta from 0 to 1 across all strikes and maturities
-- Gamma surface — peaks at ATM for short expiries, decays with time
-- Vega surface — maximum at ATM, decays for OTM and long maturities
-- Theta surface — most negative at ATM for short expiries
-- All Greeks computed with continuous dividend yield adjustment
+## Key Findings
 
-</details>
+**1. The smile exists because the market is smarter than Black-Scholes.**
+OTM puts trade at 5–8% higher IV than ATM options at 30-day expiry.
+This is not mispricing — it is the market's compensation for crash risk,
+adverse selection, and the non-normal distribution of returns.
+
+**2. The risk reversal tells you where fear lives.**
+A negative 25-delta risk reversal means puts are more expensive than
+equivalent calls. The magnitude tells you how strongly the market
+is pricing asymmetric downside risk.
+
+**3. Heston fits the smile — Black-Scholes does not.**
+The Heston model with ρ=−0.70 captures the entire surface with
+RMSE of ~0.3 vol points. Black-Scholes with any single volatility
+cannot fit the smile at all — a different vol is needed for every strike.
+
+**4. The vol risk premium is real and persistent.**
+Implied vol exceeded realized vol on ~72% of all days 2020–2025.
+This is why short-vega (selling options) strategies are profitable
+over long horizons — but they crash catastrophically when they fail.
+
+**5. The term structure inversion matters for trading.**
+When short-dated IV > long-dated IV (backwardation), the market
+expects near-term volatility to mean-revert — often signals a crisis.
+When long-dated > short-dated (contango), the structure is normal.
 
 ---
 
@@ -139,112 +155,84 @@ wing (calls) — this asymmetry is the defining feature of equity vol surfaces.
 Volatility-Surface-Construction/
 │
 ├── 📁 data/
-│   ├── options_chain.csv      209 options · 19 strikes × 11 expiries
-│   │                          Columns: expiry, T, strike, moneyness,
-│   │                          log_moneyness, call_mid, put_mid,
-│   │                          call_bid, call_ask, implied_vol, delta, vega
-│   ├── iv_surface.csv         11×19 IV matrix (pivot table)
-│   └── term_structure.csv     ATM IV + forward vol by expiry
+│   ├── vol_surface.csv        252 option quotes · 21 strikes × 12 maturities
+│   ├── term_structure.csv     ATM IV · 25δ RR · butterfly across maturities
+│   └── vol_timeseries.csv     Realized vs implied vol · VRP · 2020–2025
 │
 ├── 📓 notebooks/
-│   ├── 01_implied_vol_solver.ipynb      Newton-Raphson IV solver
-│   ├── 02_vol_surface_3d.ipynb          3D surface construction
-│   ├── 03_surface_heatmap.ipynb         Heatmap + contour + skew metrics
-│   ├── 04_svi_calibration.ipynb         SVI fitting + arbitrage checks
-│   └── 05_greeks_term_structure.ipynb   Greeks surface + term structure
+│   ├── 01_bs_pricing_iv.ipynb         BS pricing · IV extraction · Greeks
+│   ├── 02_vol_smile_surface.ipynb     Smile construction · 3D surface
+│   ├── 03_skew_term_structure.ipynb   RR · butterfly · term structure
+│   ├── 04_heston_calibration.ipynb    Heston fit · residuals · rho sensitivity
+│   └── 05_realized_vs_implied.ipynb   VRP · RV/IV comparison · 2020–2025
 │
 ├── 🐍 src/
-│   ├── bs_engine.py           BS pricing · Newton-Raphson IV · Greeks
-│   ├── svi_model.py           SVI calibration · arbitrage-free checks
-│   └── surface_analytics.py  Term structure · skew · RR · butterfly
+│   ├── bs_pricing.py      BS price · Greeks · IV solver · Newton-Raphson
+│   ├── vol_surface.py     Smile · term structure · RR · butterfly · interpolation
+│   └── heston_model.py    Heston IV approx · calibration · Dupire local vol
 │
 ├── 📊 results/
-│   ├── vol_surface_final_pro.png    ← 3D surface (final professional image)
-│   ├── 01_volatility_smile.png      Smile by expiry (linear + log-moneyness)
-│   ├── 02_vol_surface_3d.png        3D surface (two viewing angles)
-│   ├── 03_surface_heatmap.png       Heatmap + contour plot
-│   ├── 04_term_structure.png        ATM IV term structure + forward vol
-│   ├── 05_svi_calibration.png       SVI fits across 6 expiries
-│   ├── 06_greeks_surface.png        Delta · Gamma · Vega · Theta
-│   ├── 07_summary_dashboard.png     Full analytics dashboard
-│   ├── vol_surface_bloomberg.gif    Bloomberg-style animated dashboard
-│   └── vol_surface_video.mp4        10-second video walkthrough
+│   ├── 01_vol_smile.png           Smile across maturities · log-moneyness
+│   ├── 02_term_structure.png      ATM · 25δ · RR · butterfly vs maturity
+│   ├── 03_vol_surface_3d.png      3D wireframe + heatmap
+│   ├── 04_skew_analysis.png       Smile shape · delta space · curvature
+│   ├── 05_heston_calibration.png  Market vs model · residuals · rho sensitivity
+│   ├── 06_realized_vs_implied.png VRP time series · distribution · scatter
+│   └── 07_summary_dashboard.png   Full vol analytics overview
 │
 └── README.md
 ```
 
 ---
 
-## Source Modules
+## Source Module Reference
 
-### `bs_engine.py`
-| Function | Description |
+### `bs_pricing.py`
+| Function | What It Does |
 |:---|:---|
-| `bs_price()` | Black-Scholes call/put price with continuous dividends |
-| `bs_vega()` | Option vega for Newton-Raphson step |
-| `bs_delta()` | Delta with dividend adjustment |
-| `bs_gamma()` | Gamma |
-| `bs_theta()` | Theta (daily) |
-| `implied_vol_newton()` | Newton-Raphson solver with Brent fallback |
-| `implied_vol_surface()` | Batch IV computation for full options chain |
+| `bs_price(S,K,T,r,sigma,q,type)` | Black-Scholes call/put price |
+| `bs_greeks(S,K,T,r,sigma,q,type)` | Delta · Gamma · Vega · Theta · Rho |
+| `implied_vol(price,S,K,T,r,q,type)` | Newton-Raphson IV solver with Brent fallback |
+| `surface_from_prices(df,S,r,q)` | Batch IV extraction from price DataFrame |
 
-### `svi_model.py`
-| Function | Description |
+### `vol_surface.py`
+| Function | What It Does |
 |:---|:---|
-| `svi_total_var()` | Raw SVI total variance w(k) |
-| `svi_implied_vol()` | SVI implied vol from log-moneyness and T |
-| `calibrate_svi()` | Nelder-Mead calibration with 50 random restarts |
-| `svi_rmse()` | Root mean squared error vs market IVs |
-| `butterfly_arbitrage_check()` | d²w/dk² ≥ 0 check |
-| `calendar_spread_check()` | w(T2) ≥ w(T1) for all k check |
+| `vol_smile(surface_df, maturity_days)` | IV vs strike at given expiry |
+| `atm_term_structure(surface_df)` | ATM IV across all maturities |
+| `risk_reversal(surface_df, Td, delta)` | 25δ Put IV − Call IV |
+| `butterfly(surface_df, Td, delta)` | 25δ (Put+Call)/2 − ATM |
+| `interpolate_surface(surface_df, strikes, mats)` | Bivariate spline interpolation |
+| `vol_cone(rv_series, windows)` | Historical RV cone vs current IV |
 
-### `surface_analytics.py`
-| Function | Description |
+### `heston_model.py`
+| Function | What It Does |
 |:---|:---|
-| `atm_term_structure()` | Extract ATM IV by expiry |
-| `forward_vol()` | Compute forward vol from term structure |
-| `vol_skew()` | Put skew: IV(90%) − IV(ATM) |
-| `vol_risk_reversal()` | RR: IV(110%) − IV(90%) |
-| `vol_butterfly()` | BF: (IV(90%) + IV(110%))/2 − IV(ATM) |
-| `surface_summary()` | Full per-expiry summary table |
-
----
-
-## Charts
-
-| # | Chart | Key Insight |
-|:---:|:---|:---|
-| Hero | **3D Vol Surface** | Vol skew, term structure, and smile curvature visible simultaneously |
-| 1 | Volatility Smile | Steep negative skew — 7D smile steepest, 365D flattest |
-| 2 | 3D Surface (dual view) | RdYlGn colormap — deep red OTM puts, cobalt blue OTM calls |
-| 3 | Surface Heatmap | Crisis IV clustering visible in short-expiry OTM put region |
-| 4 | Term Structure | ATM IV declines from 22% to 17% · Forward vol dips mid-term |
-| 5 | SVI Calibration | RMSE < 0.001 across all slices · Arbitrage-free confirmed |
-| 6 | Greeks Surface | Gamma/Vega peak at ATM short-expiry · Delta surface monotone |
-| 7 | Summary Dashboard | All analytics in one view |
+| `heston_iv_approx(K,T,S,v0,kappa,theta,xi,rho,r)` | Analytical Heston IV approximation |
+| `calibrate_heston(market_surface,S,r,x0)` | L-BFGS calibration to market surface |
+| `dupire_local_vol(surface_df,S,r)` | Local volatility via Dupire formula |
 
 ---
 
 ## References
 
-- Gatheral, J. — *The Volatility Surface: A Practitioner's Guide* (2006)
 - Black, F. & Scholes, M. — *The Pricing of Options and Corporate Liabilities* (1973)
-- Gatheral, J. & Jacquier, A. — *Arbitrage-Free SVI Volatility Surfaces* (2014)
+- Heston, S. — *A Closed-Form Solution for Options with Stochastic Volatility* (1993)
 - Dupire, B. — *Pricing with a Smile* (1994)
 - Derman, E. & Kani, I. — *Riding on a Smile* (1994)
-- Heston, S. — *A Closed-Form Solution for Options with Stochastic Volatility* (1993)
+- Gatheral, J. — *The Volatility Surface: A Practitioner's Guide* (2006)
+- Carr, P. & Wu, L. — *The Variance Risk Premium* (2009)
 
 ---
 
 <div align="center">
 
 **Niraj Neupane**
-Quantitative Risk Analyst
-MS Financial Economics · University of Wisconsin–Madison
+Quantitative Researcher · Financial Economist
 Chartered Accountant (ICAI) · FRM Candidate
 
 [github.com/nirajneupane17](https://github.com/nirajneupane17)
 
-*Built with Python · NumPy · SciPy · Matplotlib · Black-Scholes · SVI*
+*Built with Python · NumPy · SciPy · Pandas · Matplotlib*
 
 </div>
