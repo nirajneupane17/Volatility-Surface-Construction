@@ -2,7 +2,7 @@
 
 # Volatility Surface Construction & Smile Dynamics
 
-### Quant Trading Projects — Volatility Series
+### Quant Trading Projects: Volatility Series
 
 *A complete institutional-grade volatility modeling framework:
 Black-Scholes implied vol extraction, smile and skew construction,
