@@ -18,6 +18,10 @@ Dupire local volatility, and realized vs implied vol risk premium.*
 
 ---
 
+![Implied Volatility Surface](results/dashboard_final_pro.png)
+
+---
+
 ## What Is This Project?
 
 The volatility surface is the most important data structure in options markets.
